@@ -110,14 +110,51 @@ $.ajax({
 　 	{ auth_data: 'allow', body: 'test=test+data+from+post&test2=test2+data' }
 
 　 
+■ユーザIDの認証関数からメイン関数への受け渡し
+
+　上記のように、ヘッダの値を次のような形で設定し、
+　メイン関数と認証関数に受け渡そうと試みたが、メイン関数に受け渡せない。
+　　　→理由はわからない。
 　 
 　 
+　 	var auth_jwt = {
+		"user_id":user_id,
+		"temporal_random":temporal_random,
+		"mac":mac
+	}
+	var auth_jwt_str = JSON.stringify(auth_jwt)
 　 
+　	$.ajax({
+	  url: 'https://zolduiowmi.execute-api.us-east-1.amazonaws.com/2/userinfo-update',
+	  method: 'GET',
+	  headers: {
+	    'Content-Type': 'application/json',
+	    'Authorization':auth_jwt_str
+	  }
+	}).done(function(data) {
+	    console.log(data);
+	}).fail(function(data){
+		console.log(data);
+	});
+
+　ユーザIDをメイン関数に渡すのはそれ専用の方法がある。　
+
+
+　　◆認証関数での指定方法
+　　  レスポンスのauthResponse.principalIdにIDを設定する。
+
+　　◆メイン関数での指定方法
+　　$context.authorizer.principalId　をBodyMappingTemplateに指定する。
+  {
+　　　　"aa":"bb",
+　　　　"userid":"$context.authorizer.principalId"
+　　}
+　という形式。
+　この記載により、認証関数で指定された値が、メイン関すへ引き渡される。
 　
-　　
 
-
-
+　　  
+　　  
 
 
 
