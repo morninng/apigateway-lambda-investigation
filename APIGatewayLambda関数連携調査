@@ -1,0 +1,125 @@
+■概要
+　APIGatewayにおいて、認証関数とメイン関数の二つをLambda関数で処理する。
+ 認証関数は、HttpHeaderに設定したAuthParamのデータのみを参照
+ メイン関数は、AuthParam、PostData、Queryデータのすべてを参照する
+
+ メイン関数は、認証関数で用いたAuthParamに含まれるユーザIDを
+ そのまま利用してAuthorizeされたユーザデータを処理する必要がある。
+
+■調査内容
+　データの受け渡し方法がドキュメントをみていまいちわからなかったので、
+　その方法を模索した結果をここに示す。
+　認証関数の方は別ドキュメントを参照でここではメイン関数へのデータ引き渡しをメインで記入
+
+■送信データ
+ 固定文字列
+　QueryParameter
+　http header
+　http body
+　
+
+■検証スクリプト
+
+下記のデータがうけわたされることを確認
+　HeaderにおけるAuthorizationデータ
+　　→AuthLambdaと
+　
+■MappingDataの取得
+ $input.params() : リクエストに含まれるすべてのパラメータを取得
+ $input.params(x)　: xパラメータのデータを取得するが、順番として、
+ 　　　　　　　　　　　　　　　　　　　PATH、QueryString、HeaderValueの順番でパースしていきデータ取得
+ 
+
+
+■Getデータのやりとり
+
+$.ajax({
+  url: 'https://ayezw7de4c.execute-api.us-east-1.amazonaws.com/dd?query_a=XXX&query_b=YYY',
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization':'allow'
+  }
+}).done(function(data) {
+    console.log(data);
+}).fail(function(data){
+	console.log(data);
+});
+
+　Lambdaに受け渡すデータは、IntegrationRequestのBodyMappingTemplateにおいて定義する。
+(1) Add mapping Templateをクリック
+(2) Content-Typeにおいてapplication/jsonと記入
+(3) Modelデータの記入　　
+-Authデータ
+　　$input.params().header.get('Authorization') : ヘッダに設定している値をこのような形で取得可能
+　　$input.params('Authorization')： パラメータの一つとしてのAuthorizationの取得
+-Queryデータ
+　　$input.params().querystring　：　Queryの値を一括で取得。上記の例だと{query_a=XXX, query_b=YYY}　というように、
+　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　Queryの値をJSON形式に変換されている。
+　　$input.params('query_a')　:　パラメータの一つとして、Queryの値を取得。上記のXXXにあたる、QueryのValueのみを取得できる。
+　　$input.params().querystring.query_a　：　QueryStringの全体のデータを取得して、そのうちの一つのパラメータ取得も可能。
+
+
+
+■Postデータのやりとり
+
+
+var data_obj = {test: "test data from post", test2: "test2 data"};
+var data_str = JSON.stringify(data_obj);
+var data_length = data_str.length;
+
+$.ajax({
+  url: 'https://ayezw7de4c.execute-api.us-east-1.amazonaws.com/dd?query_a=PostXXX&query_b=PostYYY',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization':'allow'
+  },
+  data: data_str
+}).done(function(data) {
+    console.log(data);
+}).fail(function(data){
+	console.log(data);
+});
+
+
+(3) Modelデータの記入　　
+-Bodyデータ
+  IntegrationRequestのBodyMappingTemplateに何も記載しないと、
+  data_strの、文字列化したデータをJQUERYに指定すると、　{test: "test data from post", test2: "test2 data"}
+　というオブジェクトでLambdaの中では利用できるようになる。
+　ここで、JQUERYにdata_objというオブジェクトでデータを指定すると、「400 bad request」となってしまう。
+　　
+　　IntegrationRequestのBodyMappingTemplateに{"body": "$input.body"}と指定したばあい、
+　　data_objというオブジェクトをJqueryに指定すると、{ body: 'test=test+data+from+post&test2=test2+data' }という形式で、
+　　Lambdaの中では利用できるようになる。
+　ここで、Jqueryにdata_strという文字列でデータを指定するとエラーとなってしまう。
+　　
+　このような動作になる理由はよくわからないが、こういうことらしい。
+　　
+
+- Bodyデータとヘッダデータの両方をBodyMappingTemplateに指定する場合
+
+　上記で、何もデータを指定しない場合に、data_strを指定するとBodyデータが取得できたが、
+　　{"auth_data" : "$input.params().header.get('Authorization')"}というように、
+　ヘッダのデータをBodyMappingTemplateに指定すると、Bodyデータは取得できない。
+　
+　 両方のデータを取得するには{"auth_data" : "$input.params().header.get('Authorization')","body":"$input.body"}
+　 という形で明示的に$input.bodyを指定しないといけない。
+　 この場合、取得データが次のようになってしまう。
+　 	{ auth_data: 'allow', body: 'test=test+data+from+post&test2=test2+data' }
+
+　 
+　 
+　 
+　 
+　
+　　
+
+
+
+
+
+
+
+

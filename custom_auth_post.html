@@ -1,0 +1,40 @@
+<html>
+
+
+<head>
+	<script src="https://code.jquery.com/jquery-2.2.3.js"></script>
+
+</head>
+
+<body>
+
+
+<script>
+
+var data_obj = {test1: "test1", test2: "test2"};
+var data_str = JSON.stringify(data_obj);
+var data_length = data_str.length;
+
+
+$.ajax({
+  url: 'https://ayezw7de4c.execute-api.us-east-1.amazonaws.com/dd?query_a=PostXXX&query_b=PostYYY',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization':'allow'
+  },
+  data: data_obj,
+  dataType:'json'
+}).done(function(data) {
+    console.log(data);
+    var decoded_data = JSON.parse(data.body);
+
+}).fail(function(data){
+	console.log(data);
+});
+
+</script>
+
+
+</body>
+</html>
